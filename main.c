@@ -164,9 +164,10 @@ int main(void)
     while (NRF_Interrupt>0) 
     {
       
+      RXEN_lo; 
       NRF_CE_lo;
       nrf_status = NRF_ReadRegister(NRF_STATUS);
-      GPIO->P[RXEN_PORT].DOUT &= ~(1 << RXEN_PIN); 
+      
       if (nrf_status & 0x10) 
       {
         NRF_WriteRegister(NRF_STATUS, 0x10);
@@ -184,7 +185,7 @@ int main(void)
         NRF_SendCommand(NRF_FLUSH_RX, 0xFF);
         REDval = RGB_PWM_TIMER_TOP + 25 - abs(packet.accelX / 4);
         GREENval = RGB_PWM_TIMER_TOP + 25 - abs(packet.accelY / 4);
-        GPIO->P[RXEN_PORT].DOUT |= (1 << RXEN_PIN); 
+        RXEN_hi; 
         NRF_CE_hi;
       }
       
