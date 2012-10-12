@@ -26,7 +26,7 @@ WINDOWSCS = CodeSourcery/Sourcery G++ Lite
 LINUXCS   = /cad/codesourcery/arm-none-eabi/arm-2010q1
 GCCVERSION = $(shell $(CC) -dumpversion)
 
-TOOLDIR = /Users/speck/Developer/Cross/arm-cs-tools-2011.09-69-0084249-20120911
+TOOLDIR = /Users/janek/Developer/Cross/arm-cs-tools-2011.09-69-0084249-20121009
 RM = rm -rf
 
 CC      = $(QUOTE)$(TOOLDIR)/bin/arm-none-eabi-gcc$(QUOTE)
@@ -52,7 +52,7 @@ CFLAGS += -std=c99 -D$(DEVICE) -mcpu=cortex-m3 -mthumb -ffunction-sections -fno-
 ASMFLAGS += -Ttext 0x0                        
 
 LDFLAGS += -Xlinker -Map=$(LST_DIR)/$(PROJECTNAME).map -mcpu=cortex-m3 -mthumb \
--TCMSIS/CM3/DeviceSupport/EnergyMicro/EFM32/startup/cs3/efm32g.ld -L"$(TOOLDIR)/arm-none-eabi/lib/thumb2" \
+-TCMSIS/CM3/DeviceSupport/EnergyMicro/EFM32/startup/cs3/efm32gg.ld -L"$(TOOLDIR)/arm-none-eabi/lib/thumb2" \
 -L"$(TOOLDIR)/lib/gcc/arm-none-eabi/$(GCCVERSION)/thumb2" \
 -Wl,--gc-sections -Wl,--no-wchar-size-warning
 
@@ -98,7 +98,7 @@ main.c
 #microsd.c \
 
 S_SRC +=  \
-CMSIS/CM3/DeviceSupport/EnergyMicro/EFM32/startup/cs3/startup_efm32.s
+CMSIS/CM3/DeviceSupport/EnergyMicro/EFM32/startup/cs3/startup_efm32gg.s
 
 ####################################################################
 # Rules                                                            #
