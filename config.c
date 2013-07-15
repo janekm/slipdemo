@@ -173,7 +173,7 @@ void IO_Init(void)
     CMU->HFPERCLKEN0 |= CMU_HFPERCLKEN0_USART2;
     usartInit.msbf = true;
     usartInit.clockMode = usartClockMode0;
-    usartInit.baudrate = 7000000;
+    usartInit.baudrate = 1000000;
     USART_InitSync(USART2, &usartInit);
     //USART_Enable(USART1, usartEnable);
     USART2->ROUTE = (USART2->ROUTE & ~_USART_ROUTE_LOCATION_MASK) | USART_ROUTE_LOCATION_LOC1;
@@ -214,7 +214,7 @@ void IO_Init(void)
 
   RTC_Reset();
   /* Enable RTC */
-  //RTC_Enable(true);
+  RTC_Enable(true);
   rtcInits.comp0Top = false;
   RTC_Init(&rtcInits);
    // RTC_Init(&rtcInit);

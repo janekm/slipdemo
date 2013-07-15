@@ -118,7 +118,7 @@ void NRF_SetupTX(void)
   //NRF_WriteRegister(NRF_RF_SETUP, 0x08);  // -28dB
   NRF_WriteRegister(NRF_RF_CH, NODE_CH); // RF Channel
   NRF_WriteRegister(NRF_RX_PW_P0, 32); // RX Payload Width
-  NRF_WriteRegister(NRF_FEATURE, 0x01);
+  //NRF_WriteRegister(NRF_FEATURE, 0x01);
 
 #if NODE_ID == 1
   addr_array[0] = 0xE7;

@@ -9,6 +9,7 @@ uint8_t NRF_ReadRegister(uint8_t reg);
 void NRF_WriteRegister(uint8_t reg, uint8_t data);
 void NRF_WriteRegisterMulti(uint8_t reg, uint8_t bytes, uint8_t *data);
 void NRF_SendPayload(uint8_t reg, uint8_t bytes, uint8_t *data);
+void NRF_ReceivePayload(uint8_t cmd, uint8_t bytes, uint8_t *buf);
 void NRF_SendCommand(uint8_t cmd, uint8_t data);
 void NRF_SetupTX(void);
 void NRF_EnableRX(void);

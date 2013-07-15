@@ -49,6 +49,7 @@
 
 #include <math.h>
 
+#include "data.h"
 
 static volatile int NRF_Interrupt = 0;
 static volatile int MMA_Capture = 0;
@@ -76,7 +77,7 @@ typedef struct {
   uint8_t padding[24];
 } Packet_Type __attribute__ ((packed));
 
-Packet_Type packet;
+sample_t packet;
 
 void GPIO_EVEN_IRQHandler(void) 
 {
@@ -92,7 +93,7 @@ void GPIO_ODD_IRQHandler(void)
 {
   if (GPIO->IF & (1 << MMA_INT_PIN)) 
   {
-    GPIO->P[0].DOUT ^= (1 << 3);
+    //GPIO->P[0].DOUT ^= (1 << 3);
     MMA_Capture++;
     //RTCVal = RTC_CounterGet();
     GPIO->IFC = (1 << MMA_INT_PIN);
@@ -139,7 +140,7 @@ int main(void)
   TIMER_IntClear(TIMER0, TIMER_IF_OF);
   uart_init(UART1); // for printf
   
-  printf("Hello World\n");
+  //printf("Hello World\n");
 
   #ifndef BASESTATION
   MMAInit(); // set up accelerometer
@@ -161,11 +162,12 @@ int main(void)
   while(1)
   {
     //nrf_status = NRF_Status();
-    while (NRF_Interrupt>0) 
+    if (NRF_Interrupt>0) 
     {
       
-      RXEN_lo; 
-      NRF_CE_lo;
+      //RXEN_lo; 
+      //NRF_CE_lo;
+      //NRF_WriteRegister(NRF_CONFIG, 0x0C);
       nrf_status = NRF_ReadRegister(NRF_STATUS);
       
       if (nrf_status & 0x10) 
@@ -181,10 +183,16 @@ int main(void)
         NRF_WriteRegister(NRF_STATUS, 0x70);
         //printf("nrf_status DATA_READY\n");
         NRF_ReceivePayload(NRF_R_RX_PAYLOAD, 32, (uint8_t *)&packet);
-        printf("nodeID: %d, X: %d, Y: %d, Z: %d\n", packet.nodeID, packet.accelX, packet.accelY, packet.accelZ);
-        NRF_SendCommand(NRF_FLUSH_RX, 0xFF);
-        REDval = RGB_PWM_TIMER_TOP + 25 - abs(packet.accelX / 4);
-        GREENval = RGB_PWM_TIMER_TOP + 25 - abs(packet.accelY / 4);
+        printf("nodeID: %d, X: %d, Y: %d, Z: %d\n", packet.nodeId, packet.accel.x, packet.accel.y, packet.accel.z);
+        //NRF_SendCommand(NRF_FLUSH_RX, 0xFF);
+        REDval = RGB_PWM_TIMER_TOP + 25 - abs(packet.accel.x / 4);
+        GREENval = RGB_PWM_TIMER_TOP + 25 - abs(packet.accel.y / 4);
+        GPIO->P[0].DOUT ^= (1 << 3);
+        //NRF_WriteRegister(NRF_CONFIG, 0x0F);
+          for (int i =0; i < 1; i++) {
+            NRF_Delay();
+          }
+
         RXEN_hi; 
         NRF_CE_hi;
       }
@@ -203,27 +211,25 @@ int main(void)
       accelReading.z = buf[4]<<8 | buf[5];
       REDval = RGB_PWM_TIMER_TOP + 25 - abs(accelReading.x / 16);
       GREENval = RGB_PWM_TIMER_TOP + 25 - abs(accelReading.y / 16);
+      
+      //packet.type = PACKET_TYPE_ACCELDATA;
+      packet.nodeId = NODE_ID;
+      packet.accel.x = accelReading.x;
+      packet.accel.y = accelReading.y;
+      packet.accel.z = accelReading.z;
 
-      packet.type = PACKET_TYPE_ACCELDATA;
-      packet.nodeID = NODE_ID;
-      packet.accelX = accelReading.x;
-      packet.accelY = accelReading.y;
-      packet.accelZ = accelReading.z;
-
-      //AccelReading.x = ((AccelReading.x << 8) & 0xFF00) | (AccelReading.x >> 8);
-      //printf("X: %d, Y: %d, Z: %d\n", AccelReading.x, AccelReading.y, AccelReading.z);
-      //NRF_PowerUp();
       NRF_TransmitPacket(32, (uint8_t *)&packet);
-      //NRF_WriteRegister(NRF_CONFIG, 0x0E); // Power Up, Transmitter
-      //NRF_SendCommand(0xE1, 0xFF);
-      //NRF_CE_hi;
       RXEN_hi;
-      //GPIO->P[RXEN_PORT].DOUT |= (1 << RXEN_PIN); 
+      
+
+      INT_Disable();
+      MMA_Capture--;
+      INT_Enable();
 
     }    
     if((MMA_Capture<=0) && (NRF_Interrupt<=0)) 
     {
-      //EMU_EnterEM1(); // send processor to sleep
+      EMU_EnterEM1(); // send processor to sleep
     }
   }
 }
