@@ -114,25 +114,17 @@ void NRF_SetupTX(void)
   NRF_WriteRegister(NRF_EN_RXADDR, 0x3F); // Receive Pipe 0 enabled
   NRF_WriteRegister(NRF_SETUP_RETR, 15); // Retransmits
   NRF_WriteRegister(NRF_SETUP_AW, 0x03); // Address Width  (5 bytes)
-  NRF_WriteRegister(NRF_RF_SETUP, 0x0F); // RF Setup
+  NRF_WriteRegister(NRF_RF_SETUP, 0x06); // RF Setup
   //NRF_WriteRegister(NRF_RF_SETUP, 0x08);  // -28dB
   NRF_WriteRegister(NRF_RF_CH, NODE_CH); // RF Channel
   NRF_WriteRegister(NRF_RX_PW_P0, 32); // RX Payload Width
   //NRF_WriteRegister(NRF_FEATURE, 0x01);
 
-#if NODE_ID == 1
   addr_array[0] = 0xE7;
   addr_array[1] = 0xE7;
   addr_array[2] = 0xE7;
   addr_array[3] = 0xE7;
   addr_array[4] = 0xE7;
-#else  
-  addr_array[0] = 0xC0 + NODE_ID;
-  addr_array[1] = 0xC2;
-  addr_array[2] = 0xC2;
-  addr_array[3] = 0xC2;
-  addr_array[4] = 0xC2;
-#endif 
   
   NRF_WriteRegisterMulti(NRF_TX_ADDR, 5, addr_array);
   NRF_WriteRegisterMulti(NRF_RX_ADDR_P0, 5, addr_array);

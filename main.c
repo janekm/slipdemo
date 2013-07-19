@@ -78,6 +78,7 @@ typedef struct {
 } Packet_Type __attribute__ ((packed));
 
 sample_t packet;
+int packetIndex = 0;
 
 void GPIO_EVEN_IRQHandler(void) 
 {
@@ -124,7 +125,7 @@ void TIMER0_IRQHandler(void)
  *****************************************************************************/
 int main(void)
 {
-  
+  char inputc;
   
   /* Chip errata */
   CHIP_Init();
@@ -136,11 +137,13 @@ int main(void)
           | UART_ROUTE_TXPEN | UART_ROUTE_RXPEN;
   
   TIMER_IntClear(TIMER0, TIMER_IF_OF);
-  InitRGBLEDPWM();
+  //InitRGBLEDPWM();
   TIMER_IntClear(TIMER0, TIMER_IF_OF);
   uart_init(UART1); // for printf
-  
-  //printf("Hello World\n");
+  printf("Send s to begin download\n");
+  while(!(UART1->STATUS & UART_STATUS_RXDATAV));
+  inputc = UART1->RXDATA;
+  printf("Begin Download\n");
 
   #ifndef BASESTATION
   MMAInit(); // set up accelerometer
@@ -156,8 +159,6 @@ int main(void)
   
   NRF_WriteRegister(NRF_STATUS, 0x70); // Clear all radio interrupts
 
-
-  //NRF_PowerDown(); // power down radio until we need it to save power
 
   while(1)
   {
@@ -176,23 +177,23 @@ int main(void)
         //printf("nrf_status MAX_RT\n");
       } else if (nrf_status & 0x20)
       {
-        NRF_WriteRegister(NRF_STATUS, 0x20);
-        //printf("nrf_status TX_DS\n");
+        NRF_WriteRegister(NRF_STATUS, 0x7E);
+        
+        INT_Disable();
+        RXEN_hi;
+        NRF_TransmitPacket(32, (uint8_t *)&packet);
+        INT_Enable();
+          GPIO->P[0].DOUT ^= (1 << 3);
       } else if (nrf_status & 0x40)
       {
         NRF_WriteRegister(NRF_STATUS, 0x70);
         //printf("nrf_status DATA_READY\n");
         NRF_ReceivePayload(NRF_R_RX_PAYLOAD, 32, (uint8_t *)&packet);
-        printf("nodeID: %d, X: %d, Y: %d, Z: %d\n", packet.nodeId, packet.accel.x, packet.accel.y, packet.accel.z);
+        printf("%d, %d, %d, %d, %d, ", packet.year, packet.nodeId, packet.month, packet.day, packet.hour);
+        printf("%d, %d, %ld, %ld, %d, ", packet.minute, packet.second, packet.latitude, packet.longitude, packet.nsats);
+        printf("%d, %d, %d, %d\n", packet.accel.x, packet.accel.y, packet.light.mantissa, packet.light.exponent);
         //NRF_SendCommand(NRF_FLUSH_RX, 0xFF);
-        REDval = RGB_PWM_TIMER_TOP + 25 - abs(packet.accel.x / 4);
-        GREENval = RGB_PWM_TIMER_TOP + 25 - abs(packet.accel.y / 4);
         GPIO->P[0].DOUT ^= (1 << 3);
-        //NRF_WriteRegister(NRF_CONFIG, 0x0F);
-          for (int i =0; i < 1; i++) {
-            NRF_Delay();
-          }
-
         RXEN_hi; 
         NRF_CE_hi;
       }

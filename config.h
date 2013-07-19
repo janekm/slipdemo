@@ -1,7 +1,7 @@
 #ifndef __CONFIG_H
 #define PROSP_H
 #define NODE_ID 1
-#define NODE_CH 24
+#define NODE_CH 26
 #define BASESTATION
 
 // #define DEMO_MODE
