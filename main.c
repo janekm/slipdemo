@@ -44,6 +44,7 @@
 #include "nrf24.h"
 #include "nrf24l01.h"
 #include "MMA845XQ.h"
+#include <string.h>
 
 #include "nrf24_config.h"
 
@@ -75,7 +76,7 @@ typedef struct {
   int16_t accelY;
   int16_t accelZ;
   uint8_t padding[24];
-} Packet_Type __attribute__ ((packed));
+} __attribute__ ((packed)) Packet_Type ;
 
 sample_t packet;
 int packetIndex = 0;
@@ -120,12 +121,53 @@ void TIMER0_IRQHandler(void)
   TIMER_IntClear(TIMER0, TIMER_IF_OF);
 }
 
+sample_t buffer[5000];
+bufferindex = 0;
+bufferfill = 0;
+
+int node2prev = 0;
+int node48prev = 0;
+int node45prev = 0;
+
+
+
+void printPacket(sample_t packet) {
+  int secondtime;
+  secondtime = packet.hour * 60 * 60 + packet.minute * 60 + packet.second;
+  
+  if(packet.nodeId == 2) {
+    if (secondtime < (node2prev + 20*60)) {
+      //node2prev = secondtime;
+      return;
+    }
+    node2prev = secondtime;
+  }
+  if(packet.nodeId == 45) {
+    if (secondtime < (node45prev + 20*60)) {
+      //node45prev = secondtime;
+      return;
+    }
+    node2prev = secondtime;
+  }
+  if(packet.nodeId == 48) {
+    if (secondtime < (node48prev + 20*60)) {
+      //node2prev = secondtime;
+      return;
+    }
+    node48prev = secondtime;
+  }
+  printf("%d, %d, %d, %d, %d, ", packet.year, packet.nodeId, packet.month, packet.day, packet.hour);
+  printf("%d, %d, %ld, %ld, %d, ", packet.minute, packet.second, packet.latitude, packet.longitude, packet.nsats);
+  printf("%d, %d, %d, %d, %d, %d, %d\n", packet.accelX, packet.accelY, packet.magX, packet.magY, packet.magZ, packet.light_mant, packet.light_exp);
+}
+
 /**************************************************************************//**
  * @brief  Main function
  *****************************************************************************/
 int main(void)
 {
   char inputc;
+  uint8_t msgbuf[32];
   
   /* Chip errata */
   CHIP_Init();
@@ -140,27 +182,50 @@ int main(void)
   //InitRGBLEDPWM();
   TIMER_IntClear(TIMER0, TIMER_IF_OF);
   uart_init(UART1); // for printf
-  printf("Send s to begin download\n");
-  while(!(UART1->STATUS & UART_STATUS_RXDATAV));
-  inputc = UART1->RXDATA;
-  printf("Begin Download\n");
 
   #ifndef BASESTATION
   MMAInit(); // set up accelerometer
   MMARegReadN(OUT_X_MSB_REG, 6, buf);
   #endif // !BASESTATION
+  //while(1) {
+  //  EMU_EnterEM2(true);
+  //}
 
   NRF_SetupTX(); // set up radio
 
   #ifdef BASESTATION
-  NRF_EnableRX();
-  RXEN_hi;
+  //NRF_EnableRX();
+  //RXEN_hi;
   #endif // BASESTATION
   
   NRF_WriteRegister(NRF_STATUS, 0x70); // Clear all radio interrupts
 
-
-  while(1)
+  printf("Send s to begin download\n");
+  while(!(UART1->STATUS & UART_STATUS_RXDATAV));
+  //inputc = UART1->RXDATA;
+  //printf("Begin Download\n");
+  //NRF_EnableRX();
+  //RXEN_hi;
+  
+  while(1) {
+  inputc = UART1->RXDATA;
+  if (inputc == 's') {
+    printf("Begin Download\n");
+    NRF_EnableRX();
+    RXEN_hi;
+  }
+  if (inputc == 'o') {
+    printf("Stop Download\n");
+    NRF_CE_lo;
+    RXEN_lo;
+    NRF_WriteRegister(NRF_CONFIG, 0x0C);
+  }
+  if (inputc == 'd') {
+    for(int i = 0; i < bufferfill; i++) {
+      printPacket(buffer[i]);
+    }
+  }
+  while(!(UART1->STATUS & UART_STATUS_RXDATAV))
   {
     //nrf_status = NRF_Status();
     if (NRF_Interrupt>0) 
@@ -188,10 +253,20 @@ int main(void)
       {
         NRF_WriteRegister(NRF_STATUS, 0x70);
         //printf("nrf_status DATA_READY\n");
-        NRF_ReceivePayload(NRF_R_RX_PAYLOAD, 32, (uint8_t *)&packet);
-        printf("%d, %d, %d, %d, %d, ", packet.year, packet.nodeId, packet.month, packet.day, packet.hour);
-        printf("%d, %d, %ld, %ld, %d, ", packet.minute, packet.second, packet.latitude, packet.longitude, packet.nsats);
-        printf("%d, %d, %d, %d\n", packet.accel.x, packet.accel.y, packet.light.mantissa, packet.light.exponent);
+        NRF_ReceivePayload(NRF_R_RX_PAYLOAD, 32, msgbuf);
+
+        if (false) { // msgbuf[0] == 0xEA) {
+          printf("GSV for %d: ", msgbuf[1]);
+          for (int i = 2; i < 13; i++) {
+            printf("%d, ", msgbuf[i]);
+          }
+          printf("%d\n", msgbuf[13]);
+
+        } else {
+          memcpy(&packet, msgbuf, 32);
+          memcpy(&buffer[bufferfill], msgbuf, 32);
+          printPacket(packet);
+        }
         //NRF_SendCommand(NRF_FLUSH_RX, 0xFF);
         GPIO->P[0].DOUT ^= (1 << 3);
         RXEN_hi; 
@@ -203,35 +278,12 @@ int main(void)
       INT_Enable();
       
     }
-    if (MMA_Capture>0) {
 
-  
-      MMARegReadN(OUT_X_MSB_REG, 6, buf);
-      accelReading.x = buf[0]<<8 | buf[1];
-      accelReading.y = buf[2]<<8 | buf[3];
-      accelReading.z = buf[4]<<8 | buf[5];
-      REDval = RGB_PWM_TIMER_TOP + 25 - abs(accelReading.x / 16);
-      GREENval = RGB_PWM_TIMER_TOP + 25 - abs(accelReading.y / 16);
-      
-      //packet.type = PACKET_TYPE_ACCELDATA;
-      packet.nodeId = NODE_ID;
-      packet.accel.x = accelReading.x;
-      packet.accel.y = accelReading.y;
-      packet.accel.z = accelReading.z;
-
-      NRF_TransmitPacket(32, (uint8_t *)&packet);
-      RXEN_hi;
-      
-
-      INT_Disable();
-      MMA_Capture--;
-      INT_Enable();
-
-    }    
     if((MMA_Capture<=0) && (NRF_Interrupt<=0)) 
     {
       EMU_EnterEM1(); // send processor to sleep
     }
   }
+}
 }
 

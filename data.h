@@ -1,6 +1,7 @@
 #ifndef DATA_H
 #define DATA_H
 
+
 typedef struct {
     uint32_t secSinceMidnight;
     uint32_t proxyTick;
@@ -28,9 +29,16 @@ typedef struct {
     int32_t latitude;
     int32_t longitude;
     uint8_t nsats;
-    xyz8_data_t accel;
-    xyz8_data_t mag;
-    light_t light;
+    uint8_t accelX;
+    uint8_t accelY;
+    uint8_t accelZ;
+    uint8_t magX;
+    uint8_t magY;
+    uint8_t magZ;
+    uint8_t light_mant;
+    uint8_t light_exp;
 } __attribute__((packed)) sample_t;
+
+#define PACKET_SIZE 32 // sizeof(sample_t)  (For the moment, code makes assumptions about size of packet, so keep at 32)
 
 #endif

@@ -21,7 +21,7 @@ void LETIMER_Setup(void)
 }
 void uart_init(USART_TypeDef *uart)
 {
-    static const uint32_t baud = 9600;
+    static const uint32_t baud = 38400;
     static const uint32_t ovs = 16;
     static const uint32_t refclk = 14060000;
 
